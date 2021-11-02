@@ -45,6 +45,7 @@ bot = telebot.TeleBot(TOKEN_API)
 @bot.message_handler(commands=['start'])
 def handel_start(message):
     _id = message.from_user.id
+    print(f'Пользователь {message.from_user.username} начал тестирование. id({_id})')
     file_name = f"{str(_id)}.json"
     if not (file_name in os.listdir(users_path)):
         write_json(file_name, test_json, users_path)
@@ -83,14 +84,14 @@ def handel_text(message):
     if msg == "Начать":
         item['Счетчик'] = 1
         write_json(file_name, item, users_path)
-
-    question_item = item.get(str(item['Счетчик']))
-    question = list(question_item.keys())[0]
-    user_markup = telebot.types.ReplyKeyboardMarkup(True, True)
-    for elem in question_item.get(question):
-        user_markup.row(elem)
-    send = bot.send_message(_id, question, reply_markup=user_markup)
-    bot.register_next_step_handler(send, add_answer, question=question, item=item, count=item['Счетчик'], file_name=file_name)
+    if item['Счетчик'] != 0:
+        question_item = item.get(str(item['Счетчик']))
+        question = list(question_item.keys())[0]
+        user_markup = telebot.types.ReplyKeyboardMarkup(True, True)
+        for elem in question_item.get(question):
+            user_markup.row(elem)
+        send = bot.send_message(_id, question, reply_markup=user_markup)
+        bot.register_next_step_handler(send, add_answer, question=question, item=item, count=item['Счетчик'], file_name=file_name)
 
 
 def add_answer(message, question=None, item=None, count=None, file_name=None):
@@ -99,7 +100,7 @@ def add_answer(message, question=None, item=None, count=None, file_name=None):
     item['Счетчик'] += 1
     write_json(file_name, item, users_path)
     if item['Счетчик'] > 7:
-        item['Счетчик'] = 1
+        item['Счетчик'] = 0
         write_json(file_name, item, users_path)
         bot.send_message(_id, "Опрос завершен")
     else:
@@ -109,11 +110,9 @@ def add_answer(message, question=None, item=None, count=None, file_name=None):
 
 
 def save_diagram(_id):
-    result_dict = test_json
-    result_dict.pop('Счетчик')
 
-    for count, value in result_dict.items():
-        file_path = os.path.join(png_path, f"{count}.png")
+    for i in range(1, 8):
+        file_path = os.path.join(png_path, f"{i}.png")
         with open(file_path, 'rb') as f:
             bot.send_photo(_id, f)
 
